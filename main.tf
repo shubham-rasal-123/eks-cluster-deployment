@@ -1,12 +1,8 @@
-data "aws_vpc" "default" {
-  default = true
-}
-
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
+data "aws_subnets" "available-subnets"{
+    filter {
+        name = "tag:Name"
+        values = ["Our-Public-*"]
+    }
 }
 
 resource "aws_eks_cluster" "this" {
@@ -15,7 +11,7 @@ resource "aws_eks_cluster" "this" {
   version  = "1.36"
 
   vpc_config {
-    subnet_ids = data.aws_subnets.default.ids
+    subnet_ids = data.aws_subnets.available-subnets.ids
   }
 
   depends_on = [
@@ -24,14 +20,26 @@ resource "aws_eks_cluster" "this" {
   ]
 }
 
-resource "aws_eks_node_group" "this" {
+output "endpoint" {
+  value = aws_eks_cluster.this.endpoint
+}
+
+output "kubeconfig-certificate-authority-data" {
+  value = aws_eks_cluster.this.certificate_authority[0].data
+}
+
+resource "aws_eks_node_group" "node-grp" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "my-node-group"
   node_role_arn   = aws_iam_role.worker.arn
-  subnet_ids      = data.aws_subnets.default.ids
+  subnet_ids      = data.aws_subnets.available-subnets.ids
+  capacity_type  = "ON_DEMAND"
+  disk_size      = "20"
+  instance_types = ["m7i-flex.large"]
+  labels         = tomap({ env = "dev" })
 
   scaling_config {
-    desired_size = 1
+    desired_size = 2
     min_size     = 1
     max_size     = 2
   }
@@ -40,10 +48,7 @@ resource "aws_eks_node_group" "this" {
     max_unavailable = 1
   }
 
-  instance_types = ["m7i-flex.large"]
-  disk_size      = "20"
-  capacity_type  = "ON_DEMAND"
-  labels         = tomap({ env = "dev" })
+
 
   depends_on = [
     aws_iam_role_policy_attachment.AmazonEKSWorkerNodePolicy,

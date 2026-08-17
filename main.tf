@@ -12,7 +12,7 @@ data "aws_subnets" "default" {
 resource "aws_eks_cluster" "this" {
   name     = "eks-cluster"
   role_arn = aws_iam_role.example.arn
-  version  = "1.35"
+  version  = "1.36"
 
   vpc_config {
     subnet_ids = data.aws_subnets.default.ids
@@ -40,7 +40,7 @@ resource "aws_eks_node_group" "this" {
     max_unavailable = 1
   }
 
-  instance_types = ["t3.small"]
+  instance_types = ["m7i-flex.large"]
   disk_size      = "20"
   capacity_type  = "ON_DEMAND"
   labels         = tomap({ env = "dev" })

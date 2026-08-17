@@ -1,11 +1,11 @@
-data "aws_subnets" "available-subnets"{
-    filter {
-        name = "tag:Name"
-        values = ["Our-Public-*"]
-    }
+data "aws_subnets" "available-subnets" {
+  filter {
+    name   = "tag:Name"
+    values = ["Our-Public-*"]
+  }
 }
 
-resource "aws_eks_cluster" "this" {
+resource "aws_eks_cluster" "eks-cluster" {
   name     = "eks-cluster"
   role_arn = aws_iam_role.example.arn
   version  = "1.36"
@@ -21,22 +21,22 @@ resource "aws_eks_cluster" "this" {
 }
 
 output "endpoint" {
-  value = aws_eks_cluster.this.endpoint
+  value = aws_eks_cluster.eks-cluster.endpoint
 }
 
 output "kubeconfig-certificate-authority-data" {
-  value = aws_eks_cluster.this.certificate_authority[0].data
+  value = aws_eks_cluster.eks-cluster.certificate_authority[0].data
 }
 
 resource "aws_eks_node_group" "node-grp" {
-  cluster_name    = aws_eks_cluster.this.name
+  cluster_name    = aws_eks_cluster.eks-cluster.name
   node_group_name = "my-node-group"
   node_role_arn   = aws_iam_role.worker.arn
   subnet_ids      = data.aws_subnets.available-subnets.ids
-  capacity_type  = "ON_DEMAND"
-  disk_size      = "20"
-  instance_types = ["m7i-flex.large"]
-  labels         = tomap({ env = "dev" })
+  capacity_type   = "ON_DEMAND"
+  disk_size       = "40"
+  instance_types  = ["m7i-flex.large"]
+  labels          = tomap({ env = "dev" })
 
   scaling_config {
     desired_size = 2
